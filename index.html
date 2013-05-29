@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+  <head>
+    <title>muT - Micro templating library for javascript</title>
+    <script src=muT.min.js></script>
+    <style>
+      body {
+        margin: 2em 5em;
+      }
+      h1 {
+        font-size: 2em;
+        margin: .67em 0;
+      }
+      .playground {
+        text-align: center;
+        background-color: lightgray;
+        border: 1px solid gray;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>muT - Micro templating library for javascript</h1>
+    <p>This page is a playground for the library.</p>
+    <p>See <a href=https://github.com/dexgeh/muT>the project page</a> for more
+    details and API description</p>
+    <div class=playground>
+      <h2>template source</h2>
+      <textarea id=template rows=8 cols=80>
+Hello {name}!
+<br>
+It's {= "<b>" + new Date() + "</b>"}!
+<br>
+Let's count to { number }.
+{{ for (index = 1; index <= number; index++) { }}
+  Number... {index}
+{{ } }}!</textarea>
+    <br>
+    <h2>template arguments, comma separated</h2>
+    <input id=arguments value=name,number>
+    <h2>generated source code</h2>
+    <textarea id=source rows=5 cols=80></textarea>
+    <div id=executeMessage></div>
+    <h2>input (json array)</h2>
+    <input id=jsonInput value='["John",5]'>
+    <br>
+    <button id=btnRun onclick=run()>Run</button>
+    <br>
+    <h2>sample code</h2>
+    <textarea id=sampleCode rows=8 cols=80></textarea>
+    <h2>output</h2>
+    <div id=runOutput></div>
+    <h2>output as html</h2>
+    <pre id=runOutputCode></pre>
+    <script>
+var run = function() {
+  var templateSource = document.getElementById('template').value;
+  var sampleCode = "var templateSource = '" + muT.js_escape(templateSource) + "';\n";
+  var fnSource = muT.toSource(templateSource);
+  document.getElementById('source').appendChild(document.createTextNode(fnSource));
+  var args = document.getElementById('arguments').value.split(",");
+  sampleCode += "var args = [";
+  for (argIdx in args) {
+    sampleCode += '"' + args[argIdx] + '",';
+  }
+  sampleCode = sampleCode.substring(0, sampleCode.length - 1);
+  sampleCode += "];\n";
+  var template;
+  try {
+    template = muT.template(templateSource, args);
+    sampleCode += "var template = muT.template(templateSource, args);\n";
+  } catch (e) {
+  document.getElementById('executeMessage').innerHTML = "KO: " + e.message;
+  return;
+  }
+  try {
+    var input = JSON.parse(document.getElementById('jsonInput').value);
+    var output = template.apply(null, input);
+    document.getElementById('runOutput').innerHTML = output;
+    document.getElementById('runOutputCode').appendChild(document.createTextNode(output));
+    sampleCode += "var output = template(" +
+      document.getElementById('jsonInput').value.substring(
+        1, document.getElementById('jsonInput').value.length - 1) + ");\n";
+  } catch (e) {
+    document.getElementById('runOutput').innerHTML = 'KO: ' + e.message;
+  }
+  document.getElementById('sampleCode').appendChild(document.createTextNode(sampleCode));
+};
+setTimeout(run, 100);
+    </script>
+    </div>
+  </body>
+</html>
