@@ -15,17 +15,19 @@ html_escape = (s) -> s.replace /[<>&'"\/]/g, html_escaper
 # utility section: javascript escaping
 
 js_escapeSequences =
-  "'"      : "\\'"
-  '\\'     : '\\\\'
-  '\r'     : '\\r'
-  '\n'     : '\\n'
-  '\t'     : '\\t'
+  "'" : "\\'"
+  '\\' : '\\\\'
+  '\r' : '\\r'
+  '\n' : '\\n'
+  '\t' : '\\t'
   '\u2028' : '\\u2028'
   '\u2029' : '\\u2029'
 
 js_escaper = (c) -> js_escapeSequences[c]
 
 js_escape = (s) -> s.replace /\\|'|\r|\n|\t|\u2028|\u2029/g, js_escaper
+
+randomInt = (scale) -> Math.floor(Math.random()*scale)
 
 # javascript code generator: the core of the library
 # handlers : array of objects with two properties: regex and handler
@@ -42,44 +44,88 @@ toSource = (tmplSource, handlers=defaultHandlers) ->
   matcher_s += '$'
   matcher = new RegExp matcher_s, 'g'
   # 2. execute a string replace with the generated matcher
-  fnSource = "var _muT_out='"
+  fnSource = ''
   index = 0
   tmplSource.replace matcher, () ->
     # for function callback arguments see:
-    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace?redirectlocale=en-US&redirectslug=JavaScript%2FReference%2FGlobal_Objects%2FString%2Freplace#Specifying_a_function_as_a_parameter
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter
     match = arguments[0]
     offset = arguments[arguments.length - 2]
     fnSource += js_escape tmplSource.slice index, offset
     for argNum in [0..handlers.length-1]
       currentMatch = arguments[argNum + 1]
       if currentMatch
-        fnSource = handlers[argNum].handler fnSource, currentMatch
+        fnSource += handlers[argNum].handler currentMatch, handlers
         break
     index = offset + match.length
     return match
-  fnSource += "'; return _muT_out;"
   return fnSource
 
 defaultHandlers = [
   {
-    # match the sequence {{...}}, interpret the internal as javascript code
-    # the output of such code will be ignored
-    # useful to inject conditional or loops
+    # {if condition}
+    #   body
+    # {/}
+    regex : /\{if ([\s\S]+?\}[\s\S]+)\{\/\}/
+    handler : (text, handlers) ->
+      rematch = text.match /([\s\S]+?)\}([\s\S]+)/
+      condition = rematch[1]
+      body = rematch[2]
+      """';
+      if (#{condition}) {
+        _muT_out+='#{toSource body, handlers}';
+      }
+      _muT_out+='"""
+  }
+  {
+    # {for element in elements}
+    #   body
+    # {/}
+    regex : /\{for ([A-Za-z][A-Za-z0-9]+ in [\s\S]+?\}[\s\S]+)\{\/\}/
+    handler : (text, handlers) ->
+      rematch = text.match /([A-Za-z][A-Za-z0-9]+) in ([\s\S]+?)\}([\s\S]+)/
+      [fullmatch, name, expression, body] = rematch
+      idxName = "idx#{randomInt 10000}"
+      exprHoldName = "expr#{randomInt 10000}"
+      """';
+      var #{exprHoldName} = #{expression};
+      for (var #{idxName} in #{exprHoldName}) {
+        var #{name} = #{exprHoldName}[#{idxName}];
+        _muT_out+='#{toSource body, handlers}';
+      }
+      _muT_out+='"""
+  }
+  {
+    # {for name, value of hashtable}
+    #   body
+    # {/}
+    regex : /\{for ([A-Za-z][A-Za-z0-9]+,[A-Za-z][A-Za-z0-9]+ of [\s\S]+?\}[\s\S]+)\{\/\}/
+    handler : (text, handlers) ->
+      rematch = text.match /([A-Za-z][A-Za-z0-9]+),([A-Za-z][A-Za-z0-9]+) of ([\s\S]+?)\}([\s\S]+)/
+      [fullmatch, name, value, expression, body] = rematch
+      exprHoldName = "expr#{randomInt 10000}"
+      """';
+      var #{exprHoldName} = #{expression};
+      for (var #{name} in #{exprHoldName}) {
+        var #{value} = #{exprHoldName}[#{name}];
+        _muT_out+='#{toSource body, handlers}';
+      }
+      _muT_out+='"""
+  }
+  {
+    # {{ jsCode() }}
     regex : /\{\{([\s\S]+?)\}\}/
-    handler : (fnSource, jsCode) -> fnSource + "'; #{jsCode} ; _muT_out+='"
+    handler: (jsCode) -> "'; #{jsCode} ; _muT_out+='"
   }
   {
-    # match the sequence {=...}, the contained javascript code will be
-    # invoked in the template function as is
+    # {= jsCode() }
     regex : /\{=([\s\S]+?)\}/
-    handler : (fnSource, unescaped) -> fnSource + "' + #{unescaped} + '"
+    handler : (unescaped) -> "' + #{unescaped} + '"
   }
   {
-    # match the sequence {...}, the contained code will be invoked
-    # in the template function, the output will be html-escaped
+    # {jsCode()}
     regex : /\{([\s\S]+?)\}/
-    handler : (fnSource, escaped) ->
-      fnSource + "' + muT.html_escape('' + #{escaped}) + '"
+    handler : (escaped) -> "' + muT.html_escape('' + #{escaped}) + '"
   }
 ]
 
@@ -87,14 +133,14 @@ defaultHandlers = [
 # a newly created javascript function with the generated source code
 # and the supplied argument names
 template = (tmplSource, argNames=[], handlers=defaultHandlers) ->
-  fnSource = toSource tmplSource, handlers
+  fnSource = "var _muT_out = '#{toSource tmplSource, handlers}'; return _muT_out;"
   args = argNames.concat [fnSource]
-  Function.apply null, args
+  return Function.apply null, args
 
-window.muT =
+muT =
   html_escape     : html_escape
   js_escape       : js_escape
-  toSource        : toSource
   defaultHandlers : defaultHandlers
   template        : template
 
+window.muT = muT

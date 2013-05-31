@@ -11,16 +11,6 @@ of the library.
 
 ```muT.js_escape(string)``` escape a string in a javascript string content.
 
-```muT.toSource(templateString, handlers=defaultHandlers)``` it's the code
-generator of muT. It will take two arguments as input:
-
-* ```tmplSource``` is the string of source code to be transformed by the rules
-* ```handlers``` is an array of objects with two properties: ```regex``` (the
-  matcher regex, it is required to have at most one capturing group) and
-  ```handler``` (the function callback called when a match occurs).
-  ```handlers``` is an optional argument; if not supplied the
-  ```defaultHandlers``` array will be used instead.
-
 ```muT.defaultHandlers``` is an array of handlers, as described before. It
 includes three handlers:
 
@@ -31,6 +21,7 @@ includes three handlers:
 ```muT.template(templateString, argumentNames=[], handlers=defaultHandlers)```
 is the most useful function, combine the ```toSource``` function and return the
 compiled function with the given argument names.
+
 
 Examples
 --------
@@ -55,7 +46,7 @@ var output = template(5);
 var handlers = defaultHandlers.concat({
   regex : /(abc)/,
   handler : function(fnSource, abc) {
-    return fnSource + "--> found! ' + " + abc + " + '";
+    return "--> found! ' + " + abc + " + '";
   }
 });
 var templateString = "...123...abc...";
