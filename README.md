@@ -12,15 +12,18 @@ of the library.
 ```muT.js_escape(string)``` escape a string in a javascript string content.
 
 ```muT.defaultHandlers``` is an array of handlers, as described before. It
-includes three handlers:
+includes six handlers:
 
 * {{...}} for javascript code; the output of the invoked code will be discarded
 * {=...} for javascript code; the output will be returned as is
 * {...} for javascript code; the output will be html-escaped
+* {for elem in elements}...{/}: iterate through the elements array
+* {for key,value of elements}...{/}: iterate through an associative array
+* {if condition}...{/}: execute the inner template if condition is true
 
 ```muT.template(templateString, argumentNames=[], handlers=defaultHandlers)```
-is the most useful function, combine the ```toSource``` function and return the
-compiled function with the given argument names.
+is the most useful function, return the compiled function with the given
+argument names.
 
 
 Examples
@@ -45,7 +48,7 @@ var output = template(5);
 ```
 var handlers = defaultHandlers.concat({
   regex : /(abc)/,
-  handler : function(fnSource, abc) {
+  handler : function(abc, handlers) {
     return "--> found! ' + " + abc + " + '";
   }
 });
