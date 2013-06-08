@@ -14,12 +14,12 @@ of the library.
 ```muT.defaultHandlers``` is an array of handlers, as described before. It
 includes six handlers:
 
-* {{...}} for javascript code; the output of the invoked code will be discarded
-* {=...} for javascript code; the output will be returned as is
-* {...} for javascript code; the output will be html-escaped
-* {for elem in elements}...{/}: iterate through the elements array
-* {for key,value of elements}...{/}: iterate through an associative array
-* {if condition}...{/}: execute the inner template if condition is true
+* ```{{...}}``` for javascript code; the output of the invoked code will be discarded
+* ```{=...}``` for javascript code; the output will be returned as is
+* ```{...}``` for javascript code; the output will be html-escaped
+* ```{for elem in elements}...{/}```: iterate through the elements array
+* ```{for key,value of elements}...{/}```: iterate through an associative array
+* ```{if condition}...{/}```: execute the inner template if condition is true
 
 ```muT.template(templateString, argumentNames=[], handlers=defaultHandlers)```
 is the most useful function, return the compiled function with the given
