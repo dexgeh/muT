@@ -56,8 +56,6 @@ Let's count to { number }.
 var run = function() {
   var templateSource = document.getElementById('template').value;
   var sampleCode = "var templateSource = '" + muT.js_escape(templateSource) + "';\n";
-  var fnSource = muT.toSource(templateSource);
-  document.getElementById('source').appendChild(document.createTextNode(fnSource));
   var args = document.getElementById('arguments').value.split(",");
   sampleCode += "var args = [";
   for (argIdx in args) {
@@ -65,6 +63,8 @@ var run = function() {
   }
   sampleCode = sampleCode.substring(0, sampleCode.length - 1);
   sampleCode += "];\n";
+  var fnSource = muT.template(templateSource, args).toString();
+  document.getElementById('source').appendChild(document.createTextNode(fnSource));
   var template;
   try {
     template = muT.template(templateSource, args);
